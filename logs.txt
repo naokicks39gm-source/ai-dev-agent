@@ -1,0 +1,5 @@
+{"level":"log","msg":"hello","url":"http://localhost:3000/index.html","userId":"37cdyur02z","time":1778560175386}
+{"level":"error","msg":"test error","url":"http://localhost:3000/index.html","userId":"37cdyur02z","time":1778560175386}
+{"level":"log","msg":"delayed log","url":"http://localhost:3000/index.html","userId":"37cdyur02z","time":1778560176388}
+{"test":1}
+{"test":123}
