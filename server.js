@@ -19,3 +19,29 @@ app.listen(3000, () => {
   logger.info("Server running");
 
 });
+app.use((req, res, next) => {
+  const original = res.end;
+
+  res.end = function (...args) {
+    if (req.requestId) {
+      logger.info("request completed", {
+        requestId: req.requestId,
+        path: req.path,
+        method: req.method
+      });
+    }
+    original.apply(res, args);
+  };
+
+  next();
+});
+
+app.post("/log", (req, res) => {
+  logger.info("client log", {
+    requestId: req.requestId,
+    body: req.body
+  });
+
+  res.json({ ok: true });
+});
+
