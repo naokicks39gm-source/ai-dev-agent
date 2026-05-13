@@ -1,2 +1,4 @@
-HELLO world
+hello world
+delete me
 replace me
+HELLO again

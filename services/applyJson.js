@@ -7,9 +7,11 @@ const safe = (p) => path.join(BASE, p);
 export function applyJson(json) {
   const results = [];
 
-  console.log("OPS:", JSON.stringify(json.ops, null, 2));
+  const ops = Array.isArray(json) ? json : json.ops;
 
-  for (const op of json.ops || []) {
+  console.log("OPS:", JSON.stringify(ops, null, 2));
+
+  for (const op of ops || []) {
     const type = (op.type || "").trim();
 
     console.log("OP:", type, op);
@@ -41,6 +43,30 @@ export function applyJson(json) {
       continue;
     }
 
+    if (type === "search") {
+      const file = safe(op.file);
+
+      if (!fs.existsSync(file)) {
+        results.push({ file: op.file, status: "missing" });
+        continue;
+      }
+
+      const content = fs.readFileSync(file, "utf-8");
+
+      const matches = content
+        .split("\n")
+        .filter(line => line.includes(op.query ?? ""));
+
+      console.log("SEARCH RESULT:", matches);
+
+      results.push({
+        file: op.file,
+        matches
+      });
+
+      continue;
+    }
+
     if (type === "delete") {
       const file = safe(op.file);
 
@@ -50,7 +76,7 @@ export function applyJson(json) {
       }
 
       let lines = fs.readFileSync(file, "utf-8").split("\n");
-      lines = lines.filter(line => line !== op.target);
+      lines = lines.filter(line => line.trim() !== (op.target ?? "").trim());
 
       fs.writeFileSync(file, lines.join("\n"), "utf-8");
 

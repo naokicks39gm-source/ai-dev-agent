@@ -10,11 +10,18 @@ const app = express();
 
 app.use(attachRequestId);
 app.use(express.json());
+
+app.use((req, res, next) => {
+  console.log("BODY:", req.body);
+  next();
+});
+
 app.use(express.static(path.resolve(".")));
 
 logRoute(app);
 agentRoute(app);
 applyRoute(app);
+
 
 app.listen(3000, () => {
   logger.info("Server running");
