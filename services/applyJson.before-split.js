@@ -1,7 +1,5 @@
 import fs from "fs";
 import path from "path";
-import { handleWrite } from "./handlers/write.js";
-import { handleReplaceSafe } from "./handlers/replaceSafe.js";
 
 const BASE = process.cwd();
 const safe = (p) => path.join(BASE, p);
@@ -18,14 +16,48 @@ export function applyJson(json) {
 
     console.log("OP:", type, op);
 
-   if (type === "write") {
-  results.push(handleWrite(op, safe));
-  continue;
-}
-   if (type === "replace_safe") {
-  results.push(handleReplaceSafe(op, safe));
-  continue;
-}
+    if (type === "write") {
+      const file = safe(op.path);
+
+      fs.mkdirSync(path.dirname(file), { recursive: true });
+      fs.writeFileSync(file, op.content ?? "", "utf-8");
+
+      results.push({ path: op.path, status: "written" });
+      continue;
+    }
+    if (type === "replace_safe") {
+      const file = safe(op.file);
+      let content = fs.readFileSync(file, "utf-8");
+
+      const count = content.split(op.find).length - 1;
+
+      console.log("DEBUG count:", count);
+
+      if (count !== op.expected) {
+        console.log("SKIP:", { expected: op.expected, actual: count });
+
+        results.push({
+          file: op.file,
+          status: "skipped",
+          reason: `expected ${op.expected} but found ${count}`
+        });
+        continue;
+      }
+
+      console.log("REPLACE EXECUTED");
+
+      content = content.split(op.find).join(op.replace);
+
+      fs.writeFileSync(file, content, "utf-8");
+
+      results.push({
+        file: op.file,
+        status: "replaced_safe",
+        count
+      });
+
+      continue;
+    }
     if (type === "replace_line") {
       const file = safe(op.file);
       let content = fs.readFileSync(file, "utf-8");
@@ -68,7 +100,7 @@ export function applyJson(json) {
 
       continue;
     }
-
+    
     if (type === "replace") {
       const file = safe(op.file);
 
