@@ -9,6 +9,18 @@ const virtualFS = {};
 const snapshots = {};
 const opLog = [];
 
+const ctx = {
+  readFile,
+  writeFile,
+  getLines,
+  saveLines,
+  safe,
+  virtualFS,
+  snapshots,
+  opLog,
+  dryRun: currentDryRun
+};
+
 // ======================
 // read
 // ======================
