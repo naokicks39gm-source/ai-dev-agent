@@ -1,19 +1,16 @@
 import fs from "fs";
-
 export function handleDelete(op, safe) {
   const file = safe(op.file);
 
-  if (!fs.existsSync(file)) {
-    return { file: op.file, status: "missing" };
-  }
-
   let lines = fs.readFileSync(file, "utf-8").split("\n");
 
-  lines = lines.filter(
-    (line) => line.trim() !== (op.target ?? "").trim()
-  );
+  if (op.line < 1 || op.line > lines.length) {
+    return { file: op.file, status: "error", reason: "line out of range" };
+  }
+
+  lines.splice(op.line - 1, 1);
 
   fs.writeFileSync(file, lines.join("\n"), "utf-8");
 
-  return { file: op.file, status: "deleted" };
+  return { file: op.file, status: "deleted", line: op.line };
 }
