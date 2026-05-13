@@ -11,6 +11,8 @@
   "license": "ISC",
   "type": "module",
   "dependencies": {
+    "@babel/generator": "^7.29.1",
+    "@babel/parser": "^7.29.3",
     "express": "^5.2.1",
     "uuid": "^14.0.0"
   }
