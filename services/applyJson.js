@@ -2,6 +2,7 @@ import fs from "fs";
 import path from "path";
 import { handleWrite } from "./handlers/write.js";
 import { handleReplaceSafe } from "./handlers/replaceSafe.js";
+import { handleReplaceLine } from "./handlers/replaceLine.js";
 
 const BASE = process.cwd();
 const safe = (p) => path.join(BASE, p);
@@ -26,48 +27,10 @@ export function applyJson(json) {
   results.push(handleReplaceSafe(op, safe));
   continue;
 }
-    if (type === "replace_line") {
-      const file = safe(op.file);
-      let content = fs.readFileSync(file, "utf-8");
-
-      const lines = content.split("\n");
-
-      // 行番号チェック
-      if (op.line < 1 || op.line > lines.length) {
-        results.push({
-          file: op.file,
-          status: "error",
-          reason: "line out of range"
-        });
-        continue;
-      }
-
-      const index = op.line - 1;
-
-      // 安全チェック（任意だけど強く推奨）
-      if (op.expected && lines[index] !== op.expected) {
-        results.push({
-          file: op.file,
-          status: "skipped",
-          reason: "line content mismatch",
-          actual: lines[index]
-        });
-        continue;
-      }
-
-      // 置換
-      lines[index] = op.replace;
-
-      fs.writeFileSync(file, lines.join("\n"), "utf-8");
-
-      results.push({
-        file: op.file,
-        status: "replaced_line",
-        line: op.line
-      });
-
-      continue;
-    }
+  if (type === "replace_line") {
+  results.push(handleReplaceLine(op, safe));
+  continue;
+}
 
     if (type === "replace") {
       const file = safe(op.file);
