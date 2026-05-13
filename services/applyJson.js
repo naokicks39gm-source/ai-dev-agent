@@ -1,40 +1,25 @@
 import fs from "fs";
 import path from "path";
 
-import { handleWrite } from "./handlers/write.js";
-import { handleReplaceSafe } from "./handlers/replaceSafe.js";
-import { handleReplaceLine } from "./handlers/replaceLine.js";
-import { handleReplace } from "./handlers/replace.js";
-import { handleSearch } from "./handlers/search.js";
-import { handleDelete } from "./handlers/delete.js";
-import { handleRead } from "./handlers/read.js";
-import { handleAppend } from "./handlers/append.js";
-import { handleInsert } from "./handlers/insert.js";
-
-import { validate } from "./system/validate.js";
-import { backup } from "./system/backup.js";
-import { pushHistory } from "./system/history.js";
-import { popHistory } from "./system/history.js";
-
 const BASE = process.cwd();
 const safe = (p) => path.join(BASE, p);
 
-// ======================
-// dryRun用仮FS
-// ======================
 let currentDryRun = false;
 const virtualFS = {};
 
 // ======================
-// helper（dryRun対応）
+// read
 // ======================
 function readFile(file) {
-  if (currentDryRun && virtualFS[file] !== undefined) {
-    return virtualFS[file];
+  if (currentDryRun) {
+    return virtualFS[file] ?? "";
   }
   return fs.readFileSync(file, "utf-8");
 }
 
+// ======================
+// write
+// ======================
 function writeFile(file, content) {
   if (currentDryRun) {
     virtualFS[file] = content;
@@ -44,121 +29,151 @@ function writeFile(file, content) {
 }
 
 // ======================
+// utils
+// ======================
+function getLines(file) {
+  return readFile(file).split("\n");
+}
+
+function saveLines(file, lines) {
+  writeFile(file, lines.join("\n"));
+}
+
+// ======================
 // main
 // ======================
 export function applyJson(json) {
-  const results = [];
-
   const ops = Array.isArray(json) ? json : json.ops;
   currentDryRun = json.dryRun === true;
 
-  console.log("OPS:", JSON.stringify(ops, null, 2));
+  const results = [];
 
   // ======================
-  // dryRun 初期化（仮FS）
+  // dryRun初期化
   // ======================
   if (currentDryRun) {
     for (const op of ops || []) {
       const file = safe(op.file);
+
       if (fs.existsSync(file)) {
         virtualFS[file] = fs.readFileSync(file, "utf-8");
+      } else {
+        virtualFS[file] = "";
       }
     }
+  }
 
+  // ======================
+  // 実行
+  // ======================
+  for (const op of ops || []) {
+    if (!op.file) {
+      results.push({ status: "error", reason: "missing_file", op });
+      continue;
+    }
+
+    const file = safe(op.file);
+    const type = (op.type || "").trim();
+
+    switch (type) {
+
+      case "write": {
+        writeFile(file, op.content ?? "");
+        results.push({ file: op.file, status: "written" });
+        break;
+      }
+
+      case "replace": {
+        const content = readFile(file);
+        writeFile(
+          file,
+          content.split(op.find ?? "").join(op.replace ?? "")
+        );
+        results.push({ file: op.file, status: "replaced" });
+        break;
+      }
+
+      case "replace_line": {
+        const lines = getLines(file);
+
+        if (op.line < 1 || op.line > lines.length) {
+          results.push({ file: op.file, status: "error", reason: "out_of_range" });
+          break;
+        }
+
+        lines[op.line - 1] = op.replace;
+        saveLines(file, lines);
+
+        results.push({ file: op.file, status: "replaced_line" });
+        break;
+      }
+
+      case "append": {
+        const content = readFile(file);
+        writeFile(file, content + "\n" + op.content);
+
+        results.push({ file: op.file, status: "appended" });
+        break;
+      }
+
+      case "insert": {
+        const lines = getLines(file);
+        const idx = Math.max(0, (op.line ?? 1) - 1);
+
+        lines.splice(idx, 0, op.content);
+        saveLines(file, lines);
+
+        results.push({ file: op.file, status: "inserted" });
+        break;
+      }
+
+      case "delete": {
+        const lines = getLines(file);
+
+        if (op.line != null) {
+          lines.splice(op.line - 1, 1);
+        } else {
+          const t = (op.target ?? "").trim();
+          const filtered = lines.filter(l => l.trim() !== t);
+
+          lines.length = 0;
+          lines.push(...filtered);
+        }
+
+        saveLines(file, lines);
+
+        results.push({ file: op.file, status: "deleted" });
+        break;
+      }
+
+      case "read": {
+        results.push({
+          file: op.file,
+          content: readFile(file)
+        });
+        break;
+      }
+
+      case "undo": {
+        results.push({ status: "undo_not_supported" });
+        break;
+      }
+
+      default: {
+        results.push({ status: "unknown_op", op });
+      }
+    }
+  }
+
+  // ======================
+  // dryRun（ここが最重要修正）
+  // ======================
+  if (currentDryRun) {
     return {
       dryRun: true,
-      ops
+      files: virtualFS
     };
   }
 
-  // ======================
-  // 実行ループ
-  // ======================
-  for (const op of ops || []) {
-
-    const error = validate(op);
-    if (error) {
-      results.push({ op, status: "invalid", error });
-      continue;
-    }
-
-    const type = (op.type || "").trim();
-    const file = op.file ? safe(op.file) : null;
-
-    console.log("OP:", type, op);
-
-    if (file) {
-      backup(file);
-    }
-
-    if (op.type !== "read" && file) {
-      const before = fs.existsSync(file)
-        ? readFile(file)
-        : null;
-
-      pushHistory(op, before);
-    }
-
-    if (type === "write") {
-      results.push(handleWrite(op, safe));
-      continue;
-    }
-
-    if (type === "replace_safe") {
-      results.push(handleReplaceSafe(op, safe));
-      continue;
-    }
-
-    if (type === "replace_line") {
-      results.push(handleReplaceLine(op, safe));
-      continue;
-    }
-
-    if (type === "replace") {
-      results.push(handleReplace(op, safe));
-      continue;
-    }
-
-    if (type === "search") {
-      results.push(handleSearch(op, safe));
-      continue;
-    }
-
-    if (type === "delete") {
-      results.push(handleDelete(op, safe));
-      continue;
-    }
-
-    if (type === "read") {
-      results.push(handleRead(op, safe));
-      continue;
-    }
-
-    if (type === "append") {
-      results.push(handleAppend(op, safe));
-      continue;
-    }
-
-    if (type === "insert") {
-      results.push(handleInsert(op, safe));
-      continue;
-    }
-
-    if (type === "undo") {
-      const last = popHistory();
-      if (!last) continue;
-
-      writeFile(
-        safe(last.op.file),
-        last.before ?? ""
-      );
-
-      results.push({ status: "undone" });
-      continue;
-    }
-
-    results.push({ status: "unknown_op", op });
-  }
-
-  return results;
+  return { ok: true, result: results };
 }
