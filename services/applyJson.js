@@ -6,6 +6,7 @@ const safe = (p) => path.join(BASE, p);
 
 let currentDryRun = false;
 const virtualFS = {};
+const snapshots = {}; // ←これ必須
 
 // ======================
 // read
@@ -22,9 +23,13 @@ function readFile(file) {
 // ======================
 function writeFile(file, content) {
   if (currentDryRun) {
+    if (!(file in snapshots)) {
+      snapshots[file] = virtualFS[file] ?? "";
+    }
     virtualFS[file] = content;
     return;
   }
+
   fs.writeFileSync(file, content, "utf-8");
 }
 
@@ -59,6 +64,7 @@ export function applyJson(json) {
         virtualFS[file] = fs.readFileSync(file, "utf-8");
       } else {
         virtualFS[file] = "";
+        snapshots[file] = before; 
       }
     }
   }
@@ -169,11 +175,20 @@ export function applyJson(json) {
   // dryRun（ここが最重要修正）
   // ======================
   if (currentDryRun) {
-    return {
-      dryRun: true,
-      files: virtualFS
+  const files = {};
+
+  for (const key of Object.keys(virtualFS)) {
+    files[key] = {
+      before: snapshots[key] ?? "",
+      after: virtualFS[key]
     };
   }
+
+  return {
+    dryRun: true,
+    diff: files
+  };
+}
 
   return { ok: true, result: results };
 }
