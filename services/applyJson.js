@@ -6,6 +6,10 @@ import { handleReplaceLine } from "./handlers/replaceLine.js";
 import { handleReplace } from "./handlers/replace.js";
 import { handleSearch } from "./handlers/search.js";
 import { handleDelete } from "./handlers/delete.js";
+import { handleRead } from "./handlers/read.js";
+import { handleAppend } from "./handlers/append.js";
+import { handleInsert } from "./handlers/insert.js";
+
 
 const BASE = process.cwd();
 const safe = (p) => path.join(BASE, p);
@@ -46,7 +50,20 @@ if (type === "search") {
  if (type === "delete") {
   results.push(handleDelete(op, safe));
   continue;
-}  
+}  if (type === "read") {
+  results.push(handleRead(op, safe));
+  continue;
+}
+
+if (type === "append") {
+  results.push(handleAppend(op, safe));
+  continue;
+}
+
+if (type === "insert") {
+  results.push(handleInsert(op, safe));
+  continue;
+}
 
     results.push({ status: "unknown_op", op });
   }
