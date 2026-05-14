@@ -3,8 +3,9 @@ export function handleSearch(ctx, op) {
   console.log("SAFE_TYPE", typeof ctx.safe);
   const file = ctx.safe(op.file);
 
-  return {
-    file: op.file,
-    matches: op.matches ?? []
-  };
+ return {
+  type: "search",
+  file: op.file,
+  status: "found"
+};
 }

@@ -6,8 +6,9 @@ export function handleDelete(ctx, op) {
   const file = ctx.safe(op.file);
   ctx.write(file, op.content ?? op.after ?? "");
 
-  return {
-    file: op.file,
-    status: "deleted"
-  };
+ return {
+  type: "delete",
+  file: op.file,
+  status: "deleted"
+};
 }

@@ -6,8 +6,9 @@ export function handleAppend(ctx, op) {
   const file = ctx.safe(op.file);
   ctx.write(file, op.content ?? op.after ?? "");
 
-  return {
-    file: op.file,
-    status: "appended"
-  };
+ return {
+  type: "append",
+  file: op.file,
+  status: "appended"
+};
 }

@@ -3,9 +3,9 @@ export function handleRead(ctx, op) {
   console.log("SAFE_TYPE", typeof ctx.safe);
   const file = ctx.safe(op.file);
   const content = ctx.read(file);
-
-  return {
-    file: op.file,
-    content
-  };
+return {
+  type: "read",
+  file: op.file,
+  status: "read"
+};
 }

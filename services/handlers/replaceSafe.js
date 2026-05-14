@@ -3,9 +3,9 @@ export function handleReplaceSafe(ctx, op) {
   console.log("SAFE_TYPE", typeof ctx.safe);
   const file = ctx.safe(op.file);
 
-  return {
-    file: op.file,
-    status: "ok",
-    after: op.after
-  };
+ return {
+  type: "replaceSafe",
+  file: op.file,
+  status: "replaced"
+};
 }

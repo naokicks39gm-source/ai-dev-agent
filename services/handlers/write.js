@@ -17,9 +17,8 @@ export function handleWrite(ctx, op) {
   });
 
   return {
-    type: "write",
-    file: op.file,
-    before,
-    after,
-  };
+  type: "write",
+  file: op.file,
+  status: "written"
+};
 }

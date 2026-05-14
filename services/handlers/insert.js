@@ -7,7 +7,8 @@ export function handleInsert(ctx, op) {
   ctx.write(file, op.content ?? op.after ?? "");
 
   return {
-    file: op.file,
-    status: "inserted"
-  };
+  type: "insert",
+  file: op.file,
+  status: "inserted"
+};
 }
