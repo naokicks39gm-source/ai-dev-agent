@@ -1,17 +1,20 @@
-import fs from "fs";
-import path from "path";
+export function handleWrite(ctx, op) {
+  console.log("CTX_IN_HANDLER", ctx);
 
-export function handleWrite(op, ctx) {
   const file = ctx.safe(op.file);
 
-  const before = fs.existsSync(file)
-    ? fs.readFileSync(file, "utf-8")
-    : "";
+  const before = ctx.read(file);
 
-  fs.mkdirSync(path.dirname(file), { recursive: true });
-  fs.writeFileSync(file, op.content ?? "", "utf-8");
+  ctx.write(file, op.content ?? "");
 
   const after = op.content ?? "";
+
+  ctx.opLog.push({
+    type: "write",
+    file: op.file,
+    before,
+    after,
+  });
 
   return {
     type: "write",

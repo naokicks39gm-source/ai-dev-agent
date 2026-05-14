@@ -1,13 +1,10 @@
-export function read(ctx, op) {
+export function handleRead(ctx, op) {
   const file = ctx.safe(op.file);
   const content = ctx.read(file);
 
-  const result = {
-    type: "read",
-    file: op.file,
-    content
-  };
+  if (content == null) {
+    return { type: "read", file: op.file, status: "missing" };
+  }
 
-  ctx.log.push(result);
-  return result;
+  return { type: "read", file: op.file, content };
 }

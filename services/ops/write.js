@@ -1,18 +1,9 @@
-import { handleWrite } from "../handlers/write.js";
+export function handleWrite(ctx, op) {
+  const file = ctx.safe(op.file);
+  const before = ctx.read(file);
 
-export function write(ctx, op) {
-  const result = handleWrite(op, ctx);
+  const after = op.content ?? "";
+  ctx.write(file, after);
 
-  ctx.log.push({
-    op: "write",
-    file: op.file,
-    before: result.before,
-    after: result.after,
-  });
-
-  return {
-    type: "write",
-    file: op.file,
-    content: op.content,
-  };
+  return { type: "write", file: op.file, before, after };
 }

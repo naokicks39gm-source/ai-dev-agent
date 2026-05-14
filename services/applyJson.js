@@ -4,19 +4,16 @@ import { dispatch } from "./dispatch.js";
 
 const BASE = process.cwd();
 
-let currentDryRun = false;
-const virtualFS = {};
-const snapshots = {};
-const opLog = [];
-
 const safe = (p) => path.join(BASE, p);
 
-function readFile(file) {
+function readFile(file, virtualFS, currentDryRun) {
   if (currentDryRun) return virtualFS[file] ?? "";
   return fs.readFileSync(file, "utf-8");
 }
 
-function writeFile(file, content) {
+function writeFile(file, content, ctx) {
+  const { virtualFS, snapshots, currentDryRun } = ctx;
+
   if (currentDryRun) {
     if (!(file in snapshots)) {
       snapshots[file] = virtualFS[file] ?? "";
@@ -28,18 +25,23 @@ function writeFile(file, content) {
   fs.writeFileSync(file, content, "utf-8");
 }
 
-const ctx = {
-  safe: (p) => safe(p),   // ★ここ明示化（重要）
-  read: readFile,
-  write: writeFile,
-  virtualFS,
-  snapshots,
-  opLog
-};
-
 export function applyJson(json) {
   const ops = Array.isArray(json) ? json : json.ops;
-  currentDryRun = json.dryRun === true;
+
+  const currentDryRun = json.dryRun === true;
+
+  const virtualFS = {};
+  const snapshots = {};
+  const opLog = [];
+
+  const ctx = {
+    safe: (p) => safe(p),
+    read: (f) => readFile(f, virtualFS, currentDryRun),
+    write: (f, c) => writeFile(f, c, { virtualFS, snapshots, currentDryRun }),
+    virtualFS,
+    snapshots,
+    opLog
+  };
 
   const results = [];
 
@@ -48,22 +50,19 @@ export function applyJson(json) {
     results.push(result);
   }
 
-  if (currentDryRun) {
-    const diff = {};
+  const diff = {};
 
-    for (const file of Object.keys(virtualFS)) {
-      diff[file] = {
-        before: snapshots[file] ?? "",
-        after: virtualFS[file]
-      };
-    }
-
-    return {
-      dryRun: true,
-      diff,
-      ops: opLog
+  for (const file of Object.keys(virtualFS)) {
+    diff[file] = {
+      before: snapshots[file] ?? "",
+      after: virtualFS[file]
     };
   }
 
-  return { ok: true, result: results };
+  return {
+    dryRun: currentDryRun,
+    diff,
+    ops: opLog,
+    result: results
+  };
 }
