@@ -1,22 +1,9 @@
 export function handleReplace(op, ctx) {
   const file = ctx.safe(op.file);
 
-  const before = ctx.read(file);
-
-  if (before == null) {
-    return {
-      type: "replace",
-      file: op.file,
-      status: "missing"
-    };
-  }
-
-  const after = before.split(op.find ?? "").join(op.replace ?? "");
-
   return {
-    type: "replace",
     file: op.file,
-    before,
-    after
+    status: "ok",
+    after: op.after
   };
 }

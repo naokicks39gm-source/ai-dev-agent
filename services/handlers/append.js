@@ -2,8 +2,7 @@ import fs from "fs";
 
 export function handleAppend(op, safe) {
   const file = safe(op.file);
-
-  fs.appendFileSync(file, "\n" + (op.content ?? ""), "utf-8");
+  fs.writeFileSync(file, op.after ?? "", "utf-8");
 
   return {
     file: op.file,
