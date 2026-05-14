@@ -1,23 +1,21 @@
-import { handleWrite } from "../handlers/write.js";
-import { handleReplace } from "../handlers/replace.js";
-import { handleReplaceLine } from "../handlers/replaceLine.js";
-import { handleReplaceSafe } from "../handlers/replaceSafe.js";
-import { handleSearch } from "../handlers/search.js";
-import { handleRead } from "../handlers/read.js";
-
-import { handleInsert } from "../handlers/insert.js";
-import { handleAppend } from "../handlers/append.js";
-import { handleDelete } from "../handlers/delete.js";
+import { handleWrite } from "./write.js";
+import { handleAppend } from "./append.js";
+import { handleInsert } from "./insert.js";
+import { handleDelete } from "./delete.js";
+import { handleReplace } from "./replace.js";
+import { handleReplaceLine } from "./replace_line.js";
+import { handleReplaceSafe } from "./replace_safe.js";
+import { handleRead } from "./read.js";
+import { handleSearch } from "./search.js";
 
 export const opsRegistry = {
   write: handleWrite,
+  append: handleAppend,
+  insert: handleInsert,
+  delete: handleDelete,
   replace: handleReplace,
   replace_line: handleReplaceLine,
   replace_safe: handleReplaceSafe,
-  search: handleSearch,
   read: handleRead,
-
-  insert: handleInsert,
-  append: handleAppend,
-  delete: handleDelete
+  search: handleSearch,
 };

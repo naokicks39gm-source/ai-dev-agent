@@ -1,14 +1,16 @@
-import fs from "fs";
+import { logger } from "../../logger.js";
 
 export function handleDelete(ctx, op) {
-  console.log("CTX_IN_HANDLER", ctx);
-  console.log("SAFE_TYPE", typeof ctx.safe);
-  const file = ctx.safe(op.file);
-  ctx.write(file, op.content ?? op.after ?? "");
+  const file = ctx.normalize(op.file);
+  const before = ctx.read(file);
 
- return {
-  type: "delete",
-  file: op.file,
-  status: "deleted"
-};
+  log(ctx, "delete:start", { file });
+
+  const after = "";
+
+  ctx.write(file, after);
+
+  ctx.opLog.push({ type: "delete", file: op.file, before, after });
+
+  return { type: "delete", file: op.file, status: "deleted" };
 }

@@ -1,26 +1,23 @@
-export function handleDelete(op, ctx) {
-  const file = ctx.safe(op.file);
+export function handleDelete(ctx, op) {
+  const file = ctx.normalize(op.file);
 
-  const lines = ctx.read(file).split("\n");
-  const before = lines.join("\n");
+  const before = ctx.read(file);
+  const lines = before.split("\n");
 
-  if (op.line != null) {
-    lines.splice(op.line - 1, 1);
-  } else {
-    const t = (op.target ?? "").trim();
-    const filtered = lines.filter(l => l.trim() !== t);
-    lines.length = 0;
-    lines.push(...filtered);
+  const index = op.line ?? -1;
+
+  if (index < 0 || index >= lines.length) {
+    ctx.opLog.push({ type: "delete", file: op.file, before, after: before });
+    return { type: "delete", file: op.file, status: "out_of_range" };
   }
+
+  lines.splice(index, 1);
 
   const after = lines.join("\n");
 
   ctx.write(file, after);
 
-  return {
-    type: "delete",
-    file: op.file,
-    before,
-    after
-  };
+  ctx.opLog.push({ type: "delete", file: op.file, before, after });
+
+  return { type: "delete", file: op.file, status: "ok" };
 }

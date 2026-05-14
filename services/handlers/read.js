@@ -1,11 +1,16 @@
+import { logger } from "../../logger.js";
+
 export function handleRead(ctx, op) {
-  console.log("CTX_IN_HANDLER", ctx);
-  console.log("SAFE_TYPE", typeof ctx.safe);
-  const file = ctx.safe(op.file);
+  const file = ctx.normalize(op.file);
+
+  log(ctx, "read:start", { file });
+
   const content = ctx.read(file);
-return {
-  type: "read",
-  file: op.file,
-  status: "read"
-};
+
+  return {
+    type: "read",
+    file: op.file,
+    status: "read",
+    content,
+  };
 }

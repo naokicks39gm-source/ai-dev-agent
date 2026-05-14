@@ -1,14 +1,20 @@
-import fs from "fs";
+import { logger } from "../../logger.js";
 
 export function handleInsert(ctx, op) {
-  console.log("CTX_IN_HANDLER", ctx);
-  console.log("SAFE_TYPE", typeof ctx.safe);
-  const file = ctx.safe(op.file);
-  ctx.write(file, op.content ?? op.after ?? "");
+  const file = ctx.normalize(op.file);
+  const before = ctx.read(file);
 
-  return {
-  type: "insert",
-  file: op.file,
-  status: "inserted"
-};
+  log(ctx, "insert:start", { file });
+
+  const pos = op.position ?? before.length;
+  const after =
+    before.slice(0, pos) +
+    (op.content ?? "") +
+    before.slice(pos);
+
+  ctx.write(file, after);
+
+  ctx.opLog.push({ type: "insert", file: op.file, before, after });
+
+  return { type: "insert", file: op.file, status: "inserted" };
 }

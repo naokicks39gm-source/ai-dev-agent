@@ -1,14 +1,17 @@
 export function handleInsert(ctx, op) {
-  const file = ctx.safe(op.file);
+  const file = ctx.normalize(op.file);
 
-  const lines = ctx.read(file).split("\n");
-  const before = lines.join("\n");
+  const before = ctx.read(file);
+  const lines = before.split("\n");
 
-  const idx = Math.max(0, (op.line ?? 1) - 1);
-  lines.splice(idx, 0, op.content ?? "");
+  const index = Math.max(0, op.line ?? 0);
+  lines.splice(index, 0, op.content ?? "");
 
   const after = lines.join("\n");
+
   ctx.write(file, after);
 
-  return { type: "insert", file: op.file, before, after };
+  ctx.opLog.push({ type: "insert", file: op.file, before, after });
+
+  return { type: "insert", file: op.file, status: "ok" };
 }

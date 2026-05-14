@@ -1,14 +1,18 @@
 export function handleReplaceSafe(ctx, op) {
-  const file = ctx.safe(op.file);
+  const file = ctx.normalize(op.file);
+
   const before = ctx.read(file);
 
-  const count = before.split(op.find).length - 1;
-  if (count !== op.expected) {
-    return { type: "replace_safe", status: "skipped" };
+  if (!before.includes(op.find)) {
+    ctx.opLog.push({ type: "replace_safe", file: op.file, before, after: before });
+    return { type: "replace_safe", file: op.file, status: "skipped" };
   }
 
-  const after = before.split(op.find).join(op.replace);
+  const after = before.replace(op.find, op.replace ?? "");
+
   ctx.write(file, after);
 
-  return { type: "replace_safe", file: op.file, before, after };
+  ctx.opLog.push({ type: "replace_safe", file: op.file, before, after });
+
+  return { type: "replace_safe", file: op.file, status: "ok" };
 }

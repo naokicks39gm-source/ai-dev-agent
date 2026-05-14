@@ -1,15 +1,15 @@
 export function handleSearch(ctx, op) {
-  const file = ctx.safe(op.file);
-  const content = ctx.read(file);
+  const file = ctx.normalize(op.file);
 
-  const lines = content.split("\n");
-  const matches = [];
+  const before = ctx.read(file);
 
-  for (let i = 0; i < lines.length; i++) {
-    if (lines[i].includes(op.query ?? "")) {
-      matches.push({ line: i + 1, content: lines[i] });
-    }
-  }
+  const found = before.includes(op.query ?? "");
 
-  return { type: "search", file: op.file, matches };
+  ctx.opLog.push({ type: "search", file: op.file, before, after: before });
+
+  return {
+    type: "search",
+    file: op.file,
+    status: found ? "found" : "not_found"
+  };
 }

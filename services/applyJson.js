@@ -1,10 +1,10 @@
 import fs from "fs";
 import path from "path";
 import { dispatch } from "./dispatch.js";
+import { logger } from "../logger.js";
 
 const BASE = process.cwd();
-
-const safe = (p) => path.join(BASE, p);
+const normalize = (p) => path.resolve(BASE, p);
 
 function readFile(file, virtualFS, currentDryRun) {
   if (currentDryRun) return virtualFS[file] ?? "";
@@ -27,7 +27,6 @@ function writeFile(file, content, ctx) {
 
 export function applyJson(json) {
   const ops = Array.isArray(json) ? json : json.ops;
-
   const currentDryRun = json.dryRun === true;
 
   const virtualFS = {};
@@ -35,19 +34,27 @@ export function applyJson(json) {
   const opLog = [];
 
   const ctx = {
-    safe: (p) => safe(p),
-    read: (f) => readFile(f, virtualFS, currentDryRun),
-    write: (f, c) => writeFile(f, c, { virtualFS, snapshots, currentDryRun }),
+    normalize,
+
+    read: (f) => readFile(normalize(f), virtualFS, currentDryRun),
+
+    write: (f, c) =>
+      writeFile(normalize(f), c, {
+        virtualFS,
+        snapshots,
+        currentDryRun
+      }),
+
     virtualFS,
     snapshots,
-    opLog
+    opLog,
+    logger
   };
 
   const results = [];
 
   for (const op of ops || []) {
-    const result = dispatch(op, ctx);
-    results.push(result);
+    results.push(dispatch(op, ctx));
   }
 
   const diff = {};
