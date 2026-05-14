@@ -1,10 +1,60 @@
 <textarea id="json" style="width:500px;height:200px;"></textarea>
 <button onclick="run()">RUN</button>
 
-<pre id="log"></pre>
-
+<div id="output"></div>
 
 <script>
+function normalizeResult(result) {
+  const seen = new Set();
+
+  return result.filter(r => {
+    if (!r.file) return false;
+    if (r.status === "unknown_op") return false;
+
+    const key = `${r.file}:${r.type || ""}:${r.status || ""}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+
+    return true;
+  });
+}
+
+function formatLog(result) {
+  return result.map(r => {
+    if (r.type === "write") {
+      return `[WRITE] ${r.file}\n${r.after || ""}`;
+    }
+    if (r.status) {
+      return `[${r.status.toUpperCase()}] ${r.file}`;
+    }
+    return "";
+  }).join("\n");
+}
+
+function createBox(title, text) {
+  const wrapper = document.createElement("div");
+
+  const h = document.createElement("h3");
+  h.textContent = title;
+
+  const btn = document.createElement("button");
+  btn.textContent = "Copy";
+  btn.onclick = () => navigator.clipboard.writeText(text);
+
+  const pre = document.createElement("pre");
+  pre.textContent = text;
+  pre.style.maxHeight = "200px";
+  pre.style.overflow = "auto";
+  pre.style.border = "1px solid #ccc";
+  pre.style.padding = "8px";
+
+  wrapper.appendChild(h);
+  wrapper.appendChild(btn);
+  wrapper.appendChild(pre);
+
+  return wrapper;
+}
+
 async function run() {
   const json = document.getElementById("json").value;
 
@@ -15,7 +65,17 @@ async function run() {
   });
 
   const data = await res.json();
-  document.getElementById("log").textContent =
-    JSON.stringify(data, null, 2);
+
+  const result = data.result?.result || [];
+
+  const raw = JSON.stringify(result, null, 2);
+  const cleaned = normalizeResult(result);
+  const log = formatLog(cleaned);
+
+  const out = document.getElementById("output");
+  out.innerHTML = ""; // 毎回リセット
+
+  out.appendChild(createBox("Human Log", log));
+  out.appendChild(createBox("Raw JSON (for ChatGPT)", raw));
 }
 </script>
